@@ -9,6 +9,12 @@
 @IsTest
 public with sharing class JobApplicationTriggerHandlerTest {
 
+    /** 
+
+        *below tests are related to the automated Task Creation on Job Application Status Change 
+
+    */
+
     @IsTest
     static void shouldCreateSavedTasksAfterInsert() {
 
@@ -136,5 +142,121 @@ public with sharing class JobApplicationTriggerHandlerTest {
         System.assertEquals(3,taskCountAfterUpdate,'No additional tasks should be created when Status does not change.');
 
     }
+
+    /** 
+
+        *below tests are related to linking Primary Contact to Job Application automatically 
+
+    */
+
+    @IsTest
+    private static void shouldSetPrimaryContactFromAccountOnInsert(){
+        
+        Account testAccount = TestFactory.createAccount();
+
+        Contact testContact = TestFactory.createContact(testAccount.Id);
+
+        Job_Application__c app = TestFactory.createJobApplication(null);
+
+        app.Company_Name__c=testAccount.Id;
+
+        Test.startTest();
+
+        insert app;
+
+        Test.stopTest();
+
+        Job_Application__c insertedApp = [SELECT Id, Primary_Contact__c, Company_Name__c FROM Job_Application__c WHERE Id = : app.Id];
+
+        System.assertEquals(testContact.Id, insertedApp.Primary_Contact__c, 'Primary Contact should be set from the first Contact related to the Company Account.');
+
+
+    }
+
+
+    @IsTest
+    private static void shouldSetPrimaryContactFromJobAppRelatedContactOnUpdate(){
+
+        Account testAccount = TestFactory.createAccount();
+
+        Contact testContact = TestFactory.createContact(testAccount.Id);
+
+        Job_Application__c app = TestFactory.createJobApplication(null);
+
+        insert testAccount;
+        insert testContact;
+        insert app;
+
+        Job_Application_Contact__c jobAppRelatedContact = TestFactory.createJobAppRelatedContact (app.Id, testContact.Id);
+
+        insert jobAppRelatedContact;
+
+        app.Name = 'Updated Job App';
+
+        Test.startTest();
+        update app;
+        Test.stopTest();
+
+        Job_Application__c updatedapp =[SELECT Id, Primary_Contact__c FROM Job_Application__c WHERE Id=: app.Id];
+
+        System.assertEquals(testContact.Id, updatedapp.Primary_Contact__c,'Primary Contact should be set from the first Contact related through Job Application Contact.' );
+
+    }
+
+
+    //negative Testing:
+
+    @IsTest 
+    private static void shouldNotOverwriteExistingPrimaryContact(){
+
+        Account testAccount = TestFactory.createAccount();
+        insert testAccount;
+
+        Contact testContact = TestFactory.createContact(testAccount.Id);
+        insert testContact;
+
+        Job_Application__c app = TestFactory.createJobApplication(null);
+        app.Primary_Contact__c= testContact.Id;
+
+        Test.startTest();
+
+        insert app;
+
+        Test.stopTest();
+
+
+        Job_Application__c insertedApp = [SELECT Id, Primary_Contact__c, Company_Name__c FROM Job_Application__c WHERE Id = : app.Id];
+
+        System.assertEquals(testContact.Id, insertedApp.Primary_Contact__c, 'Existing Primary Contact should not be overwritten.');
+
+
+    }
+
+    //negative Testing:
+
+    @IsTest
+    private static void shouldLeavePrimarycontactEmptyNoContact(){
+
+        Account testAccount = TestFactory.createAccount();
+
+        Job_Application__c app = TestFactory.createJobApplication(null);
+
+        insert testAccount;
+
+        Test.startTest();
+
+        insert app;
+
+        Test.stopTest();
+
+
+        Job_Application__c insertedApp = [SELECT Id, Primary_Contact__c, Company_Name__c FROM Job_Application__c WHERE Id = : app.Id];
+
+        System.assertEquals(null, insertedApp.Primary_Contact__c, 'Primary Contact should stay blank when no related Contact exists.');
+
+
+    }
+
+
 
 }

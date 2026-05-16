@@ -1,6 +1,7 @@
  /**
  * @author                 :    narjes.b@gmail.com
- * Description             :    Automated Task Creation for each Status update on Job Application Object
+ * Description             :    Automated Task Creation for each Status update on Job Application Object and also linking Primary
+ *                              Contact on Job application in case it is empty. 
  * Last modified by        :    narjes.b@gmail.com
  * last modified Date      :    May 2026
  * 
@@ -20,6 +21,18 @@ public with sharing class JobApplicationTriggerHandler extends TriggerHandler  {
         Map<Id, Job_Application__c> oldApplicationMap = (Map<Id, Job_Application__c>) Trigger.oldMap;
 
         createStatusTasks(updatedApplications, oldApplicationMap);
+
+    }
+
+    public override void beforeInsert(){
+        List<Job_Application__c> newApplications= (List<Job_Application__c>) Trigger.new;
+        setPrimaryContacts(newApplications);
+
+    }
+
+    Public override void beforeUpdate(){
+        List<Job_Application__c> updatedApplications= (List<Job_Application__c>) Trigger.new;
+        setPrimaryContacts(updatedApplications);
 
     }
 
@@ -82,7 +95,7 @@ public with sharing class JobApplicationTriggerHandler extends TriggerHandler  {
     
 
 
-
+//Task Subjects for each Job Application Status
     private static List<String> getTaskSubjectsForStatus (String applicationStatus) {
 
         List<String> taskSubjects =new List<String>();
@@ -157,7 +170,7 @@ public with sharing class JobApplicationTriggerHandler extends TriggerHandler  {
     }
 
 
-
+//Priority for the tasks
     private static String getPriorityForStatus(String applicationStatus){
         if (
 
@@ -179,6 +192,8 @@ public with sharing class JobApplicationTriggerHandler extends TriggerHandler  {
     }
 
     
+//Due Date for the tasks
+
     private static Date getDueDateForStatus (String applicationStatus){
        
         if (applicationStatus == 'Interviewing') {
@@ -202,4 +217,91 @@ public with sharing class JobApplicationTriggerHandler extends TriggerHandler  {
         return Date.today().addDays(2);
 
     }
+
+// this method will check if the primary Contact for the Job Application is empty and then first it will check for the first contact
+// related to the job application and if there is none, then it will check for the first contact related to Account that Job application
+// is linked to, to set the primary contact
+
+    private static void setPrimaryContacts(List<Job_Application__c> applications){
+        Set<Id> jobApplicationIds = new Set<Id>();
+        Set<Id> accountIds =new Set<Id>();
+
+        List<Job_Application__c> applicationsNeedingPrimaryContact = new List<Job_Application__c>();
+
+        for (Job_Application__c app : applications){
+            if (app.Primary_Contact__c !=null){
+                continue;
+            }
+
+            applicationsNeedingPrimaryContact.add(app);
+            jobApplicationIds.add(app.Id);
+
+            if (app.Company_Name__c !=null){
+                accountIds.add(app.Company_Name__c);
+            }
+        }
+        if (applicationsNeedingPrimaryContact.isEmpty()){
+            return;
+        }
+
+        Map<Id, Id> jobApplicationIdToFirstContactId = getFirstContactByJobApplicationId(jobApplicationIds);
+        Map<Id, Id> accountIdToFirstContactId = getFirstContactByAccountId(accountIds);
+
+        for (Job_Application__c app : applicationsNeedingPrimaryContact) {
+            Id primarycontactId;
+
+            if (jobApplicationIdToFirstContactId.containsKey(app.Id)){
+                primarycontactId = jobApplicationIdToFirstContactId.get (app.Id);
+            }else if (accountIdToFirstContactId.containsKey(app.Company_Name__c)){
+                primarycontactId = accountIdToFirstContactId.get(app.Company_Name__c);
+            }
+
+            if (primarycontactId!=null) {
+                app.Primary_Contact__c=primarycontactId;
+            }
+        }
+
+
+
+
+    }
+
+
+    //helper method to get the first contact (created first) that is linked to the Job Application
+    private static Map<Id,Id> getFirstContactByJobApplicationId (Set<Id> jobApplicationIds){
+
+        Map<Id,Id>jobApplicationIdToFirstContactId= new Map<Id,Id>();
+
+        for (Job_Application_Contact__c relatedContact : 
+        [ SELECT Id, Job_Application__c, Contact__c FROM Job_Application_Contact__c WHERE Job_Application__c IN : jobApplicationIds
+         AND Contact__c!=null ORDER BY CreatedDate ASC]) {
+
+            if (!jobApplicationIdToFirstContactId.containsKey(relatedContact.Job_Application__c)) {
+
+                jobApplicationIdToFirstContactId.put(relatedContact.Job_Application__c, relatedContact.Contact__c);
+                
+            }
+         }
+        
+        return jobApplicationIdToFirstContactId;
+    }
+
+
+    //helper method to get first contact (created first) that is linked to the Account that is linked to Job Application
+    private static Map<Id, Id> getFirstContactByAccountId (Set<Id> accountIds){
+
+        Map<Id,Id> accountIdToFirstContactId = new Map<Id,Id> ();
+
+        for (Contact contactRecord : [SELECT Id, AccountId FROM Contact WHERE AccountId IN : accountIds ORDER BY CreatedDate ASC]){
+
+            if (!accountIdToFirstContactId.containsKey(contactRecord.AccountId)){
+                accountIdToFirstContactId.put(contactRecord.AccountId, contactRecord.Id);
+            }
+        }
+
+        return accountIdToFirstContactId;
+
+    }
+
+
 }  
