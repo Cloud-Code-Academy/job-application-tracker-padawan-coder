@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Filing_Status__c</fullName>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <label>Filing Status</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Single</fullName>
+                <default>true</default>
+                <label>Single</label>
+            </value>
+            <value>
+                <fullName>Married, filing jointly</fullName>
+                <default>false</default>
+                <label>Married, filing jointly</label>
+            </value>
+            <value>
+                <fullName>Married, filing seperately</fullName>
+                <default>false</default>
+                <label>Married, filing seperately</label>
+            </value>
+            <value>
+                <fullName>Head of the Household</fullName>
+                <default>false</default>
+                <label>Head of the Household</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

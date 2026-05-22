@@ -258,5 +258,99 @@ public with sharing class JobApplicationTriggerHandlerTest {
     }
 
 
+     /** 
+
+        *below tests are related to automatic calculation of Estiomated fields on Job Application Records
+
+    */
+
+
+    @IsTest
+    private static void shouldPopulatePaycheckFieldsOnInsert(){
+        Job_Application__c app = TestFactory.createJobApplication(null);
+        app.Salary__c=100000;
+
+        Test.startTest();
+        insert app;
+        Test.stopTest();
+
+        Job_Application__c insertedApp = [SELECT Id, Salary__c, Estimated_Federal_Taxes_Yearly__c,
+        Estimated_Social_Security_Tax_Yearly__c,
+        Estimated_Medicare_Withholding_Yearly__c,
+        Estimated_Take_Home_Pay_Yearly__c,
+        Estimated_Take_Home_Pay_Monthly__c 
+        FROM Job_Application__c WHERE Id =: app.Id];
+
+        System.assertEquals(13449.00, insertedApp.Estimated_Federal_Taxes_Yearly__c, 'Federal income tax should be calculated from the 2025 single filer tax brackets');
+        
+        System.assertEquals(6200.00, insertedApp.Estimated_Social_Security_Tax_Yearly__c, 'Social Security tax should be 6.2% of salary.');
+
+        System.assertEquals(1450.00, insertedApp.Estimated_Medicare_Withholding_Yearly__c, 'Medicare withholding should be 1.45% of salary.');
+
+        System.assertEquals(78901.00, insertedApp.Estimated_Take_Home_Pay_Yearly__c, 'Take-home yearly should equal salary minus federal tax, Social Security, and Medicare.');
+
+        System.assertEquals(6575.08, insertedApp.Estimated_Take_Home_Pay_Monthly__c, 'Take-home monthly should equal yearly take-home divided by 12.');
+
+    }
+
+
+
+    @IsTest
+    private static void shouldRecalculatePaycheckFieldsOnSalaryUpdate(){
+        Job_Application__c app = TestFactory.createJobApplication(null);
+        app.Salary__c=100000;
+        insert app;
+
+        app.Salary__c = 80000;
+
+        Test.startTest();
+        update app;
+        Test.stopTest();
+
+        Job_Application__c updatedApp = [SELECT Id, Salary__c, Estimated_Federal_Taxes_Yearly__c,
+        Estimated_Social_Security_Tax_Yearly__c,
+        Estimated_Medicare_Withholding_Yearly__c,
+        Estimated_Take_Home_Pay_Yearly__c,
+        Estimated_Take_Home_Pay_Monthly__c 
+        FROM Job_Application__c WHERE Id =: app.Id];
+
+        System.assertEquals(9049.00, updatedApp.Estimated_Federal_Taxes_Yearly__c, 'should have been recalculated.');
+        
+        System.assertEquals(4960.00, updatedApp.Estimated_Social_Security_Tax_Yearly__c, 'should have been recalculated.');
+
+        System.assertEquals(1160.00, updatedApp.Estimated_Medicare_Withholding_Yearly__c, 'should have been recalculated.');
+
+        System.assertEquals(64831.00, updatedApp.Estimated_Take_Home_Pay_Yearly__c, 'should have been recalculated.');
+
+        System.assertEquals(5402.58, updatedApp.Estimated_Take_Home_Pay_Monthly__c, 'should have been recalculated.');
+
+    }
+
+
+
+    @IsTest
+    private static void shouldPopulateZeroPaycheckValuesOnNullSalary(){
+        Job_Application__c app = TestFactory.createJobApplication(null);
+        app.Salary__c=null;
+
+        Test.startTest();
+        insert app;
+        Test.stopTest();
+
+        Job_Application__c insertedApp = [SELECT Id, Salary__c, Estimated_Federal_Taxes_Yearly__c,
+        Estimated_Social_Security_Tax_Yearly__c,
+        Estimated_Medicare_Withholding_Yearly__c,
+        Estimated_Take_Home_Pay_Yearly__c,
+        Estimated_Take_Home_Pay_Monthly__c 
+        FROM Job_Application__c WHERE Id =: app.Id];
+
+        System.assertEquals(0, insertedApp.Estimated_Federal_Taxes_Yearly__c);
+        System.assertEquals(0, insertedApp.Estimated_Social_Security_Tax_Yearly__c);
+        System.assertEquals(0, insertedApp.Estimated_Medicare_Withholding_Yearly__c);
+        System.assertEquals(0, insertedApp.Estimated_Take_Home_Pay_Yearly__c);
+        System.assertEquals(0, insertedApp.Estimated_Take_Home_Pay_Monthly__c);
+
+    }
+
 
 }

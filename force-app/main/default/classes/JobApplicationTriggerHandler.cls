@@ -1,7 +1,8 @@
  /**
  * @author                 :    narjes.b@gmail.com
- * Description             :    Automated Task Creation for each Status update on Job Application Object and also linking Primary
- *                              Contact on Job application in case it is empty. 
+ * Description             :    - Automated Task Creation for each Status update on Job Application Object.
+ *                              - linking Primary Contact on Job application in case it is empty. 
+ *                              - Social Security, Medicare withholding and take home calculations
  * Last modified by        :    narjes.b@gmail.com
  * last modified Date      :    May 2026
  * 
@@ -27,12 +28,15 @@ public with sharing class JobApplicationTriggerHandler extends TriggerHandler  {
     public override void beforeInsert(){
         List<Job_Application__c> newApplications= (List<Job_Application__c>) Trigger.new;
         setPrimaryContacts(newApplications);
+        populatePaycheckFields(newApplications,null);
 
     }
 
     Public override void beforeUpdate(){
         List<Job_Application__c> updatedApplications= (List<Job_Application__c>) Trigger.new;
+        Map<Id,Job_Application__c>oldApplicationMap = (Map<Id, Job_Application__c>) Trigger.oldMap;
         setPrimaryContacts(updatedApplications);
+        populatePaycheckFields(updatedApplications,oldApplicationMap);
 
     }
 
@@ -302,6 +306,46 @@ public with sharing class JobApplicationTriggerHandler extends TriggerHandler  {
         return accountIdToFirstContactId;
 
     }
+
+
+
+    // Calculation of tax and take-home estimates
+
+    public static void populatePaycheckFields ( List<Job_Application__c> applications, Map<Id, Job_Application__c> oldApplicationMap) {
+
+        for (Job_Application__c app : applications){
+            Boolean shouldPopulateFields = false;
+
+            if (oldApplicationMap == null) {
+                shouldPopulateFields=true;
+            } else {
+                Job_Application__c oldApp= oldApplicationMap.get (app.Id);
+                if (app.Salary__c != oldApp.Salary__c){
+                    shouldPopulateFields = true;
+                }
+            }
+
+            if (!shouldPopulateFields){
+                continue;
+            }
+
+
+            // here I use the variables and the calculations from the Class PaycheckTaxCalculations :) 
+
+            PaycheckTaxCalculations.PaycheckResult paycheckResult = PaycheckTaxCalculations.calculatePaycheckEstimate(app.Salary__c);
+
+            app.Estimated_Federal_Taxes_Yearly__c =  paycheckResult.federalIncomeTaxYearly;
+            app.Estimated_Social_Security_Tax_Yearly__c = paycheckResult.socialSecurityTaxYearly;
+            app.Estimated_Medicare_Withholding_Yearly__c = paycheckResult.medicareWithholdingYearly;
+            app.Estimated_Take_Home_Pay_Yearly__c = paycheckResult.takeHomePayYearly;
+            app.Estimated_Take_Home_Pay_Monthly__c = paycheckResult.takeHomePayMonthly;
+
+
+        }
+
+
+    }
+
 
 
 }  
