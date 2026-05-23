@@ -44,5 +44,14 @@ public without sharing class TestFactory {
         );
     }
 
+    public static Event createEvent  (String subject, DateTime startDateTime){
+
+        return new Event (
+            Subject= subject,
+            startDateTime = startDateTime,
+            EndDatetime = startDateTime.addHours(1)
+        );
+    }
+
 
 }

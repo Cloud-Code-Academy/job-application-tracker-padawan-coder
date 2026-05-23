@@ -1,3 +1,11 @@
+/**
+ * @author                 :    narjes.b@gmail.com
+ * Description             :   
+ * Last modified by        :    narjes.b@gmail.com
+ * last modified Date      :    May 2026
+ * 
+ */
+
 import { LightningElement } from 'lwc';
 import calculateEstimate from '@salesforce/apex/TakeHomePayCalculatorController.calculateEstimate';
 
