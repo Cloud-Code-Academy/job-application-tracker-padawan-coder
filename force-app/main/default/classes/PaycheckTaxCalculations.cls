@@ -9,12 +9,22 @@ public with sharing class PaycheckTaxCalculations {
 
     public static final Integer taxYearToUse = 2025;
     public class PaycheckResult {
-
+        @AuraEnabled
         public Integer taxYearUsed;
+
+        @AuraEnabled
         public Decimal federalIncomeTaxYearly;
+
+        @AuraEnabled
         public Decimal socialSecurityTaxYearly;
+
+        @AuraEnabled
         public Decimal medicareWithholdingYearly;
+
+        @AuraEnabled
         public Decimal takeHomePayYearly;
+
+        @AuraEnabled
         public Decimal takeHomePayMonthly;
 
     }
