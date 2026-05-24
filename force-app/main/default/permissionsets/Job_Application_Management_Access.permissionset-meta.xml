@@ -27,6 +27,11 @@
     </fieldPermissions>
     <fieldPermissions>
         <editable>true</editable>
+        <field>Job_Application__c.CompanyName__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
         <field>Job_Application__c.Company_Name__c</field>
         <readable>true</readable>
     </fieldPermissions>
@@ -73,6 +78,11 @@
     <fieldPermissions>
         <editable>true</editable>
         <field>Job_Application__c.Notes__c</field>
+        <readable>true</readable>
+    </fieldPermissions>
+    <fieldPermissions>
+        <editable>true</editable>
+        <field>Job_Application__c.Office_Location__c</field>
         <readable>true</readable>
     </fieldPermissions>
     <fieldPermissions>
