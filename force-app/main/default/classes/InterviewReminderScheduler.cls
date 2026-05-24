@@ -19,7 +19,7 @@ public with sharing class InterviewReminderScheduler implements Schedulable {
         Datetime endOfTomorrow = Datetime.newInstance(tomorrow.addDays(1), Time.newInstance(0, 0, 0, 0));
 
 
-        List<Event> tomorrowEvents = [SELECT Id, Subject, startDateTime, Description, OwnerId, Owner.Email, Owner.Name
+        List<Event> tomorrowEvents = [SELECT Id, Subject, startDateTime,EndDateTime, Description, OwnerId, Owner.Email, Owner.Name
         FROM Event WHERE StartDateTime >= :startOfTomorrow AND startDateTime < :endOfTomorrow 
         AND (Subject LIKE '%Call%' OR Subject LIKE '%Meeting%' OR Subject LIKE '%Interview%')];
 
@@ -31,6 +31,10 @@ public with sharing class InterviewReminderScheduler implements Schedulable {
 
         for (Event interviewEvent : tomorrowEvents) {
             Messaging.SingleEmailMessage email = new Messaging.SingleEmailMessage();
+
+            if (interviewEvent.Owner == null || String.isBlank(interviewEvent.Owner.Email)) {
+                continue;            
+            }
 
             email.setToAddresses(new List<String> {interviewEvent.Owner.Email});
 

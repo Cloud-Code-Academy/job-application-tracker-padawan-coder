@@ -13,6 +13,7 @@ public with sharing class InterviewReminderSchedulerTest {
     static void shouldSendReminderEmailForTomorrowEvent(){
 
         Date tomorrow =Date.today().addDays(1);
+        User reminderUser = createReminderUser();
 
         if (isWeekend (tomorrow)){
             System.assert(true, 'Skipping positive testing Reminder as tomorrow is weekend and event validations blocks the weekend events. ');
@@ -20,6 +21,7 @@ public with sharing class InterviewReminderSchedulerTest {
         }
 
         Event tomorrowEvent =TestFactory.createEvent('Salesforce Developer Interview', Datetime.newInstance (tomorrow,Time.newInstance(10,0,0,0)));
+        tomorrowEvent.OwnerId= reminderUser.Id;
 
         insert tomorrowEvent;
 
@@ -59,6 +61,26 @@ public with sharing class InterviewReminderSchedulerTest {
         String dayOfWeek = Datetime.newInstance(dateToCheck,Time.newInstance(0, 0, 0, 0)).format ('E');
 
         return dayOfWeek == 'Sat'  || dayOfWeek == 'Sun';
+    }
+
+
+    private static User createReminderUser() {
+
+        String uniqueValue = String.valueOf(Datetime.now().getTime());
+
+        Profile testProfile= [SELECT Id FROM Profile WHERE Name='Standard User' LIMIT 1];
+
+        User testUser = new User (
+            FirstName='Interview', LastName='Reminder', Alias='irem', 
+            Email= 'interview.reminder' + uniqueValue + '@example.com',
+            Username='interview.reminder' + uniqueValue + '@example.com',
+            TimeZoneSidKey = 'Europe/Berlin', LocaleSidKey = 'en_US',
+            EmailEncodingKey = 'UTF-8',LanguageLocaleKey = 'en_US',ProfileId = testProfile.Id
+
+        );
+
+        insert testUser;
+        return testUser;
     }
 
 

@@ -125,6 +125,18 @@
                 <identifier>RecordPrimary_Contact_cField</identifier>
             </fieldInstance>
         </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldItem>Record.Office_Location__c</fieldItem>
+                <identifier>RecordOffice_Location__cField</identifier>
+            </fieldInstance>
+        </itemInstances>
+        <itemInstances>
+            <fieldInstance>
+                <fieldItem>Record.CompanyName__c</fieldItem>
+                <identifier>RecordCompanyName__cField</identifier>
+            </fieldInstance>
+        </itemInstances>
         <name>Facet-bdcc312a-fcff-4054-bfef-990a5a22f213</name>
         <type>Facet</type>
     </flexiPageRegions>
