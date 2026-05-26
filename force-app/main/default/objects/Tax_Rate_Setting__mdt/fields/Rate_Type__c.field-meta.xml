@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Rate_Type__c</fullName>
+    <externalId>false</externalId>
+    <fieldManageability>DeveloperControlled</fieldManageability>
+    <label>Rate Type</label>
+    <required>false</required>
+    <type>Picklist</type>
+    <valueSet>
+        <restricted>true</restricted>
+        <valueSetDefinition>
+            <sorted>false</sorted>
+            <value>
+                <fullName>Social Security</fullName>
+                <default>true</default>
+                <label>Social Security</label>
+            </value>
+            <value>
+                <fullName>Medicare Withholding</fullName>
+                <default>false</default>
+                <label>Medicare Withholding</label>
+            </value>
+            <value>
+                <fullName>Standard Deduction Single</fullName>
+                <default>false</default>
+                <label>Standard Deduction Single</label>
+            </value>
+        </valueSetDefinition>
+    </valueSet>
+</CustomField>

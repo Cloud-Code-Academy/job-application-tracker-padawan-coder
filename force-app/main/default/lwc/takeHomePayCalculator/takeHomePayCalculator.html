@@ -1,0 +1,42 @@
+<!--
+/**
+ * @author                 :    narjes.b@gmail.com
+ * Description             :    
+ * Last modified by        :    narjes.b@gmail.com
+ * last modified Date      :    May 2026
+ * 
+ */
+-->
+<template>
+    <lightning-card title="Take-Home Pay Calculator">
+        <div class="slds-p-around_large">
+            <lightning-input 
+                type="number" 
+                label="Yearly Salary" 
+                value={salary} 
+                onchange={handleSalaryChange}>
+            </lightning-input>
+
+            <template if:true={hasResult}>
+                <div class="slds-m-top_medium">
+                    <p><strong>Salary:</strong> {formattedSalary}</p>
+                    <p><strong>Federal Tax Yearly:</strong> {formattedFederalTax}</p>
+                    <p><strong>Social Security Tax Yearly:</strong> {formattedSocialSecurityTax}</p>
+                    <p><strong>Medicare Withholding Yearly:</strong> {formattedMedicareWithholding}</p>
+                    <p><strong>Take-home Pay Yearly:</strong> {formattedTakeHomeYearly}</p>
+                    <p><strong>Take-home Pay for 6 Months:</strong> {formattedTakeHomeSixMonths}</p>
+                    <p><strong>Take-home Pay Monthly:</strong> {formattedTakeHomeMonthly}</p>
+                    <p><strong>Take-home Pay Bi-weekly:</strong> {formattedTakeHomeBiWeekly}</p>
+                </div>
+            </template>
+
+            <template if :false ={hasResult}>
+                <p class="slds-m-top_medium slds-text-color-weak">
+                    Enter a yearly salary to calculate the estimated Take-Home pay.
+                </p>
+            </template>
+            
+        </div>
+    </lightning-card>
+    
+</template>

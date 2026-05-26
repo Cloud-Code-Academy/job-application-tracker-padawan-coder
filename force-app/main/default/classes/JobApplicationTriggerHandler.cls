@@ -1,0 +1,351 @@
+ /**
+ * @author                 :    narjes.b@gmail.com
+ * Description             :    - Automated Task Creation for each Status update on Job Application Object.
+ *                              - linking Primary Contact on Job application in case it is empty. 
+ *                              - Social Security, Medicare withholding and take home calculations
+ * Last modified by        :    narjes.b@gmail.com
+ * last modified Date      :    May 2026
+ * 
+ */
+public with sharing class JobApplicationTriggerHandler extends TriggerHandler  {
+
+    public override void afterInsert() {
+        List<Job_Application__c> newApplications = (List<Job_Application__c>) Trigger.new;
+        createStatusTasks(newApplications, null);
+
+    }
+
+    public override void afterUpdate() {
+
+        List<Job_Application__c> updatedApplications = (List<Job_Application__c>) Trigger.new;
+
+        Map<Id, Job_Application__c> oldApplicationMap = (Map<Id, Job_Application__c>) Trigger.oldMap;
+
+        createStatusTasks(updatedApplications, oldApplicationMap);
+
+    }
+
+    public override void beforeInsert(){
+        List<Job_Application__c> newApplications= (List<Job_Application__c>) Trigger.new;
+        setPrimaryContacts(newApplications);
+        populatePaycheckFields(newApplications,null);
+
+    }
+
+    Public override void beforeUpdate(){
+        List<Job_Application__c> updatedApplications= (List<Job_Application__c>) Trigger.new;
+        Map<Id,Job_Application__c>oldApplicationMap = (Map<Id, Job_Application__c>) Trigger.oldMap;
+        setPrimaryContacts(updatedApplications);
+        populatePaycheckFields(updatedApplications,oldApplicationMap);
+
+    }
+
+
+    // creating tasks for status change:
+
+    private static void createStatusTasks(List<Job_Application__c> applications, Map<Id, Job_Application__c> oldApplicationMap) {
+
+
+        List<Task> tasksToInsert = new List<Task>();
+
+        for (Job_Application__c app : applications) {
+            if (String.isBlank(app.Status__c)){
+                continue;
+            }
+
+            Boolean shouldCreateTask= false;
+
+            if (oldApplicationMap == null) {
+            //after insert
+            shouldCreateTask =true;
+
+            } else {
+                // after update
+                Job_Application__c oldApp=oldApplicationMap.get(app.Id);
+                if (app.Status__c != oldApp.Status__c) {
+                    shouldCreateTask = true;
+                }
+            }
+
+            if (shouldCreateTask) {
+                List<String> taskSubjects = getTaskSubjectsForStatus(app.Status__c);
+                for (String subj : taskSubjects) {
+
+                    Task newTask = new Task();
+    
+                    newTask.Subject = subj;
+    
+                    newTask.WhatId = app.Id;
+    
+                    newTask.OwnerId = app.OwnerId;
+    
+                    newTask.Status = 'Not Started';
+    
+                    newTask.Priority = getPriorityForStatus(app.Status__c);
+    
+                    newTask.ActivityDate = getDueDateForStatus(app.Status__c);
+    
+                    tasksToInsert.add(newTask);
+    
+                }
+
+            }
+        }
+        if (!tasksToInsert.isEmpty()) {
+            insert tasksToInsert;
+        }   
+
+    }
+    
+
+
+//Task Subjects for each Job Application Status
+    private static List<String> getTaskSubjectsForStatus (String applicationStatus) {
+
+        List<String> taskSubjects =new List<String>();
+
+        if (applicationStatus == 'Saved') {
+
+            taskSubjects.add('Check if the job description aligns with your interests and values');
+
+            taskSubjects.add('Review the highlighted skills to see if the role is a good fit');
+
+            taskSubjects.add('Research the company or role and mark your excitement level');
+
+        } else if (applicationStatus == 'Applying') {
+
+            taskSubjects.add('Find and research someone who works at the company and add them as a contact');
+
+            taskSubjects.add('Set up an informational interview to learn more about the role/company');
+
+            taskSubjects.add('Identify potential referrals to help get your application on the top of the pile');
+
+            taskSubjects.add('Customize your work achievements using the job description keywords');
+
+            taskSubjects.add('Submit your application on the company website if possible');
+
+        } else if (applicationStatus == 'Applied') {
+
+            taskSubjects.add('Reach out to the hiring manager or recruiter');
+
+            taskSubjects.add('Follow up on your application via email weekly');
+
+            taskSubjects.add('Continue identifying and saving similar job opportunities');
+
+            taskSubjects.add('Set up weekly networking calls to explore similar companies/roles');
+
+        } else if (applicationStatus == 'Interviewing') {
+
+            taskSubjects.add('Prepare your blurb or “tell me about yourself” response');
+
+            taskSubjects.add('Practice answering behavioral interview questions');
+
+            taskSubjects.add('Research the company and your interviewers');
+
+            taskSubjects.add('Set up your virtual interview space and test your tech');
+
+            taskSubjects.add('Send thank you emails within 24 hours');
+
+        } else if (applicationStatus == 'Negotiating') {
+
+            taskSubjects.add('Research your market value and know your numbers');
+
+            taskSubjects.add('Prepare your negotiation scripts');
+
+            taskSubjects.add('Evaluate your offer and decline or accept');
+
+        } else if (applicationStatus == 'Accepted') {
+
+            taskSubjects.add('Plan your resignation if applicable');
+
+            taskSubjects.add('Take some time to relax and recharge');
+
+            taskSubjects.add('Prepare for your first day of onboarding');
+
+        } else if (applicationStatus == 'Closed') {
+
+            taskSubjects.add('Send a follow-up email thanking the interviewer and asking for feedback');
+
+            taskSubjects.add('Review your notes and reflect on areas of improvement');
+
+        }
+
+        return taskSubjects;
+    }
+
+
+//Priority for the tasks
+    private static String getPriorityForStatus(String applicationStatus){
+        if (
+
+            applicationStatus == 'Applying' ||
+
+            applicationStatus == 'Applied' ||
+
+            applicationStatus == 'Interviewing' ||
+
+            applicationStatus == 'Negotiating'
+
+        ) {
+
+            return 'High';
+
+        }
+
+        return 'Normal';
+    }
+
+    
+//Due Date for the tasks
+
+    private static Date getDueDateForStatus (String applicationStatus){
+       
+        if (applicationStatus == 'Interviewing') {
+
+            return Date.today().addDays(1);
+
+        }
+
+        if (applicationStatus == 'Applied') {
+
+            return Date.today().addDays(7);
+
+        }
+
+        if (applicationStatus == 'Accepted') {
+
+            return Date.today().addDays(3);
+
+        }
+
+        return Date.today().addDays(2);
+
+    }
+
+// this method will check if the primary Contact for the Job Application is empty and then first it will check for the first contact
+// related to the job application and if there is none, then it will check for the first contact related to Account that Job application
+// is linked to, to set the primary contact
+
+    private static void setPrimaryContacts(List<Job_Application__c> applications){
+        Set<Id> jobApplicationIds = new Set<Id>();
+        Set<Id> accountIds =new Set<Id>();
+
+        List<Job_Application__c> applicationsNeedingPrimaryContact = new List<Job_Application__c>();
+
+        for (Job_Application__c app : applications){
+            if (app.Primary_Contact__c !=null){
+                continue;
+            }
+
+            applicationsNeedingPrimaryContact.add(app);
+            jobApplicationIds.add(app.Id);
+
+            if (app.Company_Name__c !=null){
+                accountIds.add(app.Company_Name__c);
+            }
+        }
+        if (applicationsNeedingPrimaryContact.isEmpty()){
+            return;
+        }
+
+        Map<Id, Id> jobApplicationIdToFirstContactId = getFirstContactByJobApplicationId(jobApplicationIds);
+        Map<Id, Id> accountIdToFirstContactId = getFirstContactByAccountId(accountIds);
+
+        for (Job_Application__c app : applicationsNeedingPrimaryContact) {
+            Id primarycontactId;
+
+            if (jobApplicationIdToFirstContactId.containsKey(app.Id)){
+                primarycontactId = jobApplicationIdToFirstContactId.get (app.Id);
+            }else if (accountIdToFirstContactId.containsKey(app.Company_Name__c)){
+                primarycontactId = accountIdToFirstContactId.get(app.Company_Name__c);
+            }
+
+            if (primarycontactId!=null) {
+                app.Primary_Contact__c=primarycontactId;
+            }
+        }
+
+
+
+
+    }
+
+
+    //helper method to get the first contact (created first) that is linked to the Job Application
+    private static Map<Id,Id> getFirstContactByJobApplicationId (Set<Id> jobApplicationIds){
+
+        Map<Id,Id>jobApplicationIdToFirstContactId= new Map<Id,Id>();
+
+        for (Job_Application_Contact__c relatedContact : 
+        [ SELECT Id, Job_Application__c, Contact__c FROM Job_Application_Contact__c WHERE Job_Application__c IN : jobApplicationIds
+         AND Contact__c!=null ORDER BY CreatedDate ASC]) {
+
+            if (!jobApplicationIdToFirstContactId.containsKey(relatedContact.Job_Application__c)) {
+
+                jobApplicationIdToFirstContactId.put(relatedContact.Job_Application__c, relatedContact.Contact__c);
+                
+            }
+         }
+        
+        return jobApplicationIdToFirstContactId;
+    }
+
+
+    //helper method to get first contact (created first) that is linked to the Account that is linked to Job Application
+    private static Map<Id, Id> getFirstContactByAccountId (Set<Id> accountIds){
+
+        Map<Id,Id> accountIdToFirstContactId = new Map<Id,Id> ();
+
+        for (Contact contactRecord : [SELECT Id, AccountId FROM Contact WHERE AccountId IN : accountIds ORDER BY CreatedDate ASC]){
+
+            if (!accountIdToFirstContactId.containsKey(contactRecord.AccountId)){
+                accountIdToFirstContactId.put(contactRecord.AccountId, contactRecord.Id);
+            }
+        }
+
+        return accountIdToFirstContactId;
+
+    }
+
+
+
+    // Calculation of tax and take-home estimates
+
+    public static void populatePaycheckFields ( List<Job_Application__c> applications, Map<Id, Job_Application__c> oldApplicationMap) {
+
+        for (Job_Application__c app : applications){
+            Boolean shouldPopulateFields = false;
+
+            if (oldApplicationMap == null) {
+                shouldPopulateFields=true;
+            } else {
+                Job_Application__c oldApp= oldApplicationMap.get (app.Id);
+                if (app.Salary__c != oldApp.Salary__c){
+                    shouldPopulateFields = true;
+                }
+            }
+
+            if (!shouldPopulateFields){
+                continue;
+            }
+
+
+            // here I use the variables and the calculations from the Class PaycheckTaxCalculations :) 
+
+            PaycheckTaxCalculations.PaycheckResult paycheckResult = PaycheckTaxCalculations.calculatePaycheckEstimate(app.Salary__c);
+
+            app.Estimated_Federal_Taxes_Yearly__c =  paycheckResult.federalIncomeTaxYearly;
+            app.Estimated_Social_Security_Tax_Yearly__c = paycheckResult.socialSecurityTaxYearly;
+            app.Estimated_Medicare_Withholding_Yearly__c = paycheckResult.medicareWithholdingYearly;
+            app.Estimated_Take_Home_Pay_Yearly__c = paycheckResult.takeHomePayYearly;
+            app.Estimated_Take_Home_Pay_Monthly__c = paycheckResult.takeHomePayMonthly;
+
+
+        }
+
+
+    }
+
+
+
+}  
